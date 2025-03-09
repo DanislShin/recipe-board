@@ -4,9 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Recipe Board</title>
-    <!-- Load Supabase with an ID for reference -->
     <script
-      id="supabase-script"
+      defer
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
     ></script>
     <style>
@@ -73,6 +72,112 @@
       #auth-feedback {
         color: #dc3545;
       }
+      #signout-btn {
+        background-color: #dc3545;
+        position: absolute;
+        top: 20px;
+        right: 20px;
+      }
+      #signout-btn:hover {
+        background-color: #b02a37;
+      }
+
+      /* Recipe Detail Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+      }
+
+      .modal-content {
+        position: relative;
+        background-color: #fff;
+        margin: 15% auto;
+        padding: 20px;
+        width: 70%;
+        max-width: 700px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .close-button {
+        position: absolute;
+        right: 20px;
+        top: 10px;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+      }
+
+      .close-button:hover {
+        color: #333;
+      }
+
+      .recipe-details {
+        text-align: left;
+      }
+
+      .recipe-details h2 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      .recipe-details .ingredients-list {
+        margin: 20px 0;
+        padding-left: 20px;
+      }
+
+      .recipe-details .ingredients-list li {
+        margin-bottom: 8px;
+      }
+
+      .recipe-details .metadata {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+      }
+
+      /* Tag Styles */
+      .tags-input {
+        width: 80%;
+        max-width: 300px;
+        margin: 5px auto;
+      }
+
+      .tag-list {
+        margin: 10px 0;
+      }
+
+      .tag {
+        display: inline-block;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 4px 8px;
+        margin: 2px;
+        border-radius: 15px;
+        font-size: 0.9em;
+      }
+
+      .tag-filter {
+        margin: 20px 0;
+      }
+
+      .tag-filter button.active {
+        background-color: #28a745;
+      }
+
+      .tag-filter button {
+        background-color: #6c757d;
+        margin: 2px;
+        font-size: 0.8em;
+      }
     </style>
   </head>
   <body>
@@ -83,11 +188,11 @@
         <input type="password" id="password" placeholder="Password" /><br />
         <button onclick="signIn()">Sign In</button>
         <button onclick="signUp()">Sign Up</button>
-        <button onclick="signOut()" id="signout-btn" style="display: none">
-          Sign Out
-        </button>
         <p id="auth-feedback"></p>
       </div>
+      <button onclick="signOut()" id="signout-btn" style="display: none">
+        Sign Out
+      </button>
       <div id="app-container" style="display: none">
         <div class="form">
           <input type="text" id="recipe-name" placeholder="Recipe Name" /><br />
@@ -96,36 +201,54 @@
             placeholder="Ingredients (comma-separated)"
           ></textarea
           ><br />
+          <input
+            type="text"
+            id="recipe-tags"
+            placeholder="Tags (comma-separated, e.g.: dinner, italian, vegetarian)"
+          /><br />
           <button onclick="addRecipe()">Add Recipe</button>
+        </div>
+        <div class="tag-filter" id="tag-filter">
+          <!-- Tags will be dynamically inserted here -->
         </div>
         <div class="recipe-list" id="recipe-list"></div>
       </div>
     </div>
 
+    <!-- Recipe Detail Modal -->
+    <div id="recipe-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-button" onclick="closeRecipeDetail()">&times;</span>
+        <div class="recipe-details" id="recipe-detail-content">
+          <!-- Content will be dynamically inserted here -->
+        </div>
+      </div>
+    </div>
+
     <script>
+      // Wait for Supabase library to load
       let supabase;
       const supabaseUrl = "https://libpumsujqdjpimtjnsr.supabase.co"; // Replace with your URL
       const supabaseKey =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpYnB1bXN1anFkanBpbXRqbnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1MTg4NjIsImV4cCI6MjA1NzA5NDg2Mn0.ULe9bE-LNOS7Su1f6YA53bc4zIcv0JMMqCvv0-6BGxg"; // Replace with your Anon Key
 
-      // Wait for Supabase script to load
-      document.getElementById("supabase-script").onload = function () {
+      // Initialize Supabase after the library loads
+      function initializeSupabase() {
+        if (typeof window.supabase === "undefined") {
+          console.error("Supabase library not loaded yet!");
+          setTimeout(initializeSupabase, 100); // Retry after 100ms
+          return;
+        }
         supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         console.log("Supabase initialized:", supabase); // Debug
-      };
-
-      // Fallback if script fails to load
-      document.getElementById("supabase-script").onerror = function () {
-        console.error("Failed to load Supabase script!");
-        document.getElementById("auth-feedback").textContent =
-          "Error loading Supabase. Please refresh.";
-      };
+      }
+      initializeSupabase();
 
       // Authentication
       async function signIn() {
         if (!supabase) {
           document.getElementById("auth-feedback").textContent =
-            "Supabase not ready, please wait or refresh...";
+            "Supabase not ready, please wait...";
           return;
         }
         const email = document.getElementById("email").value;
@@ -144,7 +267,7 @@
       async function signUp() {
         if (!supabase) {
           document.getElementById("auth-feedback").textContent =
-            "Supabase not ready, please wait or refresh...";
+            "Supabase not ready, please wait...";
           return;
         }
         const email = document.getElementById("email").value;
@@ -167,16 +290,12 @@
         document.getElementById("auth-feedback").textContent = "Signed out!";
       }
 
-      // Only attach if supabase is ready
-      window.addEventListener("load", () => {
-        if (supabase) {
-          supabase.auth.onAuthStateChange((event, session) => {
-            if (session) {
-              showApp();
-            }
-          });
-        }
-      });
+      supabase &&
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (session) {
+            showApp();
+          }
+        });
 
       function showApp() {
         document.getElementById("auth-container").style.display = "none";
@@ -195,22 +314,48 @@
           console.error("Error fetching recipes:", error);
           return;
         }
+
+        // Update tag filter buttons
+        updateTagFilters(data);
+
         const recipeList = document.getElementById("recipe-list");
         recipeList.innerHTML = "";
         data.forEach((recipe) => {
           const div = document.createElement("div");
           div.className = "recipe";
+
+          // Format tags
+          const tagsList = recipe.tags
+            ? recipe.tags
+                .split(",")
+                .map((tag) => `<span class="tag">${tag.trim()}</span>`)
+                .join("")
+            : "";
+
           div.innerHTML = `
-                    <strong>${recipe.name}</strong><br>
-                    Ingredients: ${recipe.ingredients}
-                    <button onclick="deleteRecipe(${recipe.id})">Delete</button>
-                    <button onclick="showEditForm(${recipe.id}, '${recipe.name}', '${recipe.ingredients}')">Edit</button>
-                    <div class="edit-form" id="edit-${recipe.id}">
-                        <input type="text" id="edit-name-${recipe.id}" value="${recipe.name}"><br>
-                        <textarea id="edit-ingredients-${recipe.id}">${recipe.ingredients}</textarea><br>
-                        <button onclick="editRecipe(${recipe.id})">Save</button>
-                    </div>
-                `;
+            <strong>${recipe.name}</strong><br>
+            Ingredients: ${recipe.ingredients.split(",")[0]}... 
+            <div class="tag-list">${tagsList}</div>
+            <button onclick="showRecipeDetail(${
+              recipe.id
+            })">View Details</button>
+            <button onclick="deleteRecipe(${recipe.id})">Delete</button>
+            <button onclick="showEditForm(${recipe.id}, '${recipe.name}', '${
+            recipe.ingredients
+          }', '${recipe.tags || ""}')">Edit</button>
+            <div class="edit-form" id="edit-${recipe.id}">
+              <input type="text" id="edit-name-${recipe.id}" value="${
+            recipe.name
+          }"><br>
+              <textarea id="edit-ingredients-${recipe.id}">${
+            recipe.ingredients
+          }</textarea><br>
+              <input type="text" id="edit-tags-${recipe.id}" value="${
+            recipe.tags || ""
+          }" placeholder="Tags (comma-separated)"><br>
+              <button onclick="editRecipe(${recipe.id})">Save</button>
+            </div>
+          `;
           recipeList.appendChild(div);
         });
       }
@@ -219,18 +364,23 @@
         if (!supabase) return;
         const name = document.getElementById("recipe-name").value;
         const ingredients = document.getElementById("recipe-ingredients").value;
+        const tags = document.getElementById("recipe-tags").value;
+
         if (!name || !ingredients) {
           alert("Please enter both name and ingredients!");
           return;
         }
+
         const { error } = await supabase
           .from("recipes")
-          .insert({ name, ingredients });
+          .insert({ name, ingredients, tags });
+
         if (error) {
           console.error("Error adding recipe:", error);
         } else {
           document.getElementById("recipe-name").value = "";
           document.getElementById("recipe-ingredients").value = "";
+          document.getElementById("recipe-tags").value = "";
           fetchRecipes();
         }
       }
@@ -245,7 +395,57 @@
         }
       }
 
-      function showEditForm(id, name, ingredients) {
+      function updateTagFilters(recipes) {
+        const tagFilter = document.getElementById("tag-filter");
+        const allTags = new Set();
+
+        // Collect all unique tags
+        recipes.forEach((recipe) => {
+          if (recipe.tags) {
+            recipe.tags.split(",").forEach((tag) => {
+              allTags.add(tag.trim());
+            });
+          }
+        });
+
+        // Create filter buttons
+        tagFilter.innerHTML =
+          '<button onclick="filterByTag(\'all\')" class="active">All</button>';
+        allTags.forEach((tag) => {
+          tagFilter.innerHTML += `
+            <button onclick="filterByTag('${tag}')">${tag}</button>
+          `;
+        });
+      }
+
+      function filterByTag(selectedTag) {
+        // Update active button
+        const buttons = document.querySelectorAll(".tag-filter button");
+        buttons.forEach((button) => {
+          button.classList.remove("active");
+          if (
+            button.textContent === selectedTag ||
+            (selectedTag === "all" && button.textContent === "All")
+          ) {
+            button.classList.add("active");
+          }
+        });
+
+        // Filter recipes
+        const recipes = document.querySelectorAll(".recipe");
+        recipes.forEach((recipe) => {
+          if (selectedTag === "all") {
+            recipe.style.display = "block";
+          } else {
+            const recipeTags = recipe.querySelector(".tag-list").textContent;
+            recipe.style.display = recipeTags.includes(selectedTag)
+              ? "block"
+              : "none";
+          }
+        });
+      }
+
+      function showEditForm(id, name, ingredients, tags) {
         const editForm = document.getElementById(`edit-${id}`);
         editForm.style.display =
           editForm.style.display === "block" ? "none" : "block";
@@ -257,16 +457,81 @@
         const ingredients = document.getElementById(
           `edit-ingredients-${id}`
         ).value;
+        const tags = document.getElementById(`edit-tags-${id}`).value;
+
         const { error } = await supabase
           .from("recipes")
-          .update({ name, ingredients })
+          .update({ name, ingredients, tags })
           .eq("id", id);
         if (error) {
-          console.error("Error editing_recipe:", error);
+          console.error("Error editing recipe:", error);
         } else {
           fetchRecipes();
         }
       }
+
+      // Update showRecipeDetail to include tags
+      async function showRecipeDetail(id) {
+        if (!supabase) return;
+        const { data, error } = await supabase
+          .from("recipes")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching recipe details:", error);
+          return;
+        }
+
+        const modal = document.getElementById("recipe-modal");
+        const content = document.getElementById("recipe-detail-content");
+
+        // Format ingredients as a list
+        const ingredientsList = data.ingredients
+          .split(",")
+          .map((ingredient) => `<li>${ingredient.trim()}</li>`)
+          .join("");
+
+        // Format tags
+        const tagsList = data.tags
+          ? data.tags
+              .split(",")
+              .map((tag) => `<span class="tag">${tag.trim()}</span>`)
+              .join("")
+          : "";
+
+        content.innerHTML = `
+          <h2>${data.name}</h2>
+          <div class="tags-section">
+            <div class="tag-list">${tagsList}</div>
+          </div>
+          <div class="ingredients-section">
+            <h3>Ingredients:</h3>
+            <ul class="ingredients-list">
+              ${ingredientsList}
+            </ul>
+          </div>
+          <div class="metadata">
+            <p>Created: ${new Date(data.created_at).toLocaleDateString()}</p>
+          </div>
+        `;
+
+        modal.style.display = "block";
+      }
+
+      function closeRecipeDetail() {
+        const modal = document.getElementById("recipe-modal");
+        modal.style.display = "none";
+      }
+
+      // Close modal when clicking outside of it
+      window.onclick = function (event) {
+        const modal = document.getElementById("recipe-modal");
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      };
     </script>
   </body>
 </html>
