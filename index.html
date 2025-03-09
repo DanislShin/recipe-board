@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Recipe Board</title>
+    <!-- Load Supabase with an ID for reference -->
     <script
-      defer
+      id="supabase-script"
       src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
     ></script>
     <style>
@@ -102,29 +103,29 @@
     </div>
 
     <script>
-      // Wait for Supabase library to load
       let supabase;
       const supabaseUrl = "https://libpumsujqdjpimtjnsr.supabase.co"; // Replace with your URL
       const supabaseKey =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpYnB1bXN1anFkanBpbXRqbnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1MTg4NjIsImV4cCI6MjA1NzA5NDg2Mn0.ULe9bE-LNOS7Su1f6YA53bc4zIcv0JMMqCvv0-6BGxg"; // Replace with your Anon Key
 
-      // Initialize Supabase after the library loads
-      function initializeSupabase() {
-        if (typeof window.supabase === "undefined") {
-          console.error("Supabase library not loaded yet!");
-          setTimeout(initializeSupabase, 100); // Retry after 100ms
-          return;
-        }
+      // Wait for Supabase script to load
+      document.getElementById("supabase-script").onload = function () {
         supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         console.log("Supabase initialized:", supabase); // Debug
-      }
-      initializeSupabase();
+      };
+
+      // Fallback if script fails to load
+      document.getElementById("supabase-script").onerror = function () {
+        console.error("Failed to load Supabase script!");
+        document.getElementById("auth-feedback").textContent =
+          "Error loading Supabase. Please refresh.";
+      };
 
       // Authentication
       async function signIn() {
         if (!supabase) {
           document.getElementById("auth-feedback").textContent =
-            "Supabase not ready, please wait...";
+            "Supabase not ready, please wait or refresh...";
           return;
         }
         const email = document.getElementById("email").value;
@@ -143,7 +144,7 @@
       async function signUp() {
         if (!supabase) {
           document.getElementById("auth-feedback").textContent =
-            "Supabase not ready, please wait...";
+            "Supabase not ready, please wait or refresh...";
           return;
         }
         const email = document.getElementById("email").value;
@@ -166,12 +167,16 @@
         document.getElementById("auth-feedback").textContent = "Signed out!";
       }
 
-      supabase &&
-        supabase.auth.onAuthStateChange((event, session) => {
-          if (session) {
-            showApp();
-          }
-        });
+      // Only attach if supabase is ready
+      window.addEventListener("load", () => {
+        if (supabase) {
+          supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+              showApp();
+            }
+          });
+        }
+      });
 
       function showApp() {
         document.getElementById("auth-container").style.display = "none";
@@ -257,7 +262,7 @@
           .update({ name, ingredients })
           .eq("id", id);
         if (error) {
-          console.error("Error editing recipe:", error);
+          console.error("Error editing_recipe:", error);
         } else {
           fetchRecipes();
         }
