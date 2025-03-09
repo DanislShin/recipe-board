@@ -4,70 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Recipe Board</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    ></script>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        padding: 20px;
-        background-color: #f0f0f0;
-      }
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-      }
-      h1 {
-        color: #333;
-      }
-      .form,
-      .recipe-list {
-        margin: 20px 0;
-      }
-      input,
-      textarea {
-        padding: 8px;
-        margin: 5px;
-        width: 80%;
-        max-width: 300px;
-        font-size: 1em;
-      }
-      button {
-        padding: 8px 16px;
-        margin: 5px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #0056b3;
-      }
-      .recipe {
-        background-color: #fff;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        text-align: left;
-      }
-      .recipe button {
-        background-color: #dc3545;
-        margin-left: 10px;
-      }
-      .recipe button:hover {
-        background-color: #b02a37;
-      }
-      .edit-form {
-        display: none;
-        margin-top: 10px;
-      }
-      #auth-container {
-        margin: 20px 0;
-      }
-      #auth-feedback {
-        color: #dc3545;
-      }
+      /* Your existing CSS */
     </style>
   </head>
   <body>
@@ -98,11 +40,11 @@
     </div>
 
     <script>
-      // Initialize Supabase
-      const supabaseUrl = "https://libpumsujqdjpimtjnsr.supabase.co"; // Replace with your Supabase URL
+      // Initialize Supabase first
+      const supabaseUrl = "https://libpumsujqdjpimtjnsr.supabase.co"; // Your URL
       const supabaseKey =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpYnB1bXN1anFkanBpbXRqbnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1MTg4NjIsImV4cCI6MjA1NzA5NDg2Mn0.ULe9bE-LNOS7Su1f6YA53bc4zIcv0JMMqCvv0-6BGxg"; // Replace with your Anon Key
-      const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpYnB1bXN1anFkanBpbXRqbnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1MTg4NjIsImV4cCI6MjA1NzA5NDg2Mn0.ULe9bE-LNOS7Su1f6YA53bc4zIcv0JMMqCvv0-6BGxg"; // Your Anon Key
+      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
       // Authentication
       async function signIn() {
@@ -145,7 +87,6 @@
         }
       });
 
-      // Show app after login
       function showApp() {
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("app-container").style.display = "block";
@@ -153,7 +94,6 @@
         fetchRecipes();
       }
 
-      // Fetch and display recipes
       async function fetchRecipes() {
         const { data, error } = await supabase
           .from("recipes")
@@ -183,7 +123,6 @@
         });
       }
 
-      // Add a new recipe
       async function addRecipe() {
         const name = document.getElementById("recipe-name").value;
         const ingredients = document.getElementById("recipe-ingredients").value;
@@ -203,7 +142,6 @@
         }
       }
 
-      // Delete a recipe
       async function deleteRecipe(id) {
         const { error } = await supabase.from("recipes").delete().eq("id", id);
         if (error) {
@@ -213,14 +151,12 @@
         }
       }
 
-      // Show edit form
       function showEditForm(id, name, ingredients) {
         const editForm = document.getElementById(`edit-${id}`);
         editForm.style.display =
           editForm.style.display === "block" ? "none" : "block";
       }
 
-      // Edit a recipe
       async function editRecipe(id) {
         const name = document.getElementById(`edit-name-${id}`).value;
         const ingredients = document.getElementById(
