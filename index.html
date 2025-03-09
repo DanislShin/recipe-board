@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipe Board</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #333;
+      }
+      .form,
+      .recipe-list {
+        margin: 20px 0;
+      }
+      input,
+      textarea {
+        padding: 8px;
+        margin: 5px;
+        width: 80%;
+        max-width: 300px;
+        font-size: 1em;
+      }
+      button {
+        padding: 8px 16px;
+        margin: 5px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .recipe {
+        background-color: #fff;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: left;
+      }
+      .recipe button {
+        background-color: #dc3545;
+        margin-left: 10px;
+      }
+      .recipe button:hover {
+        background-color: #b02a37;
+      }
+      .edit-form {
+        display: none;
+        margin-top: 10px;
+      }
+      #auth-container {
+        margin: 20px 0;
+      }
+      #auth-feedback {
+        color: #dc3545;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Recipe Board</h1>
+      <div id="auth-container">
+        <input type="email" id="email" placeholder="Email" /><br />
+        <input type="password" id="password" placeholder="Password" /><br />
+        <button onclick="signIn()">Sign In</button>
+        <button onclick="signUp()">Sign Up</button>
+        <button onclick="signOut()" id="signout-btn" style="display: none">
+          Sign Out
+        </button>
+        <p id="auth-feedback"></p>
+      </div>
+      <div id="app-container" style="display: none">
+        <div class="form">
+          <input type="text" id="recipe-name" placeholder="Recipe Name" /><br />
+          <textarea
+            id="recipe-ingredients"
+            placeholder="Ingredients (comma-separated)"
+          ></textarea
+          ><br />
+          <button onclick="addRecipe()">Add Recipe</button>
+        </div>
+        <div class="recipe-list" id="recipe-list"></div>
+      </div>
+    </div>
+
+    <script>
+      // Initialize Supabase
+      const supabaseUrl = "https://libpumsujqdjpimtjnsr.supabase.co"; // Replace with your Supabase URL
+      const supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpYnB1bXN1anFkanBpbXRqbnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1MTg4NjIsImV4cCI6MjA1NzA5NDg2Mn0.ULe9bE-LNOS7Su1f6YA53bc4zIcv0JMMqCvv0-6BGxg"; // Replace with your Anon Key
+      const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+      // Authentication
+      async function signIn() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          document.getElementById("auth-feedback").textContent = error.message;
+        } else {
+          showApp();
+        }
+      }
+
+      async function signUp() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          document.getElementById("auth-feedback").textContent = error.message;
+        } else {
+          document.getElementById("auth-feedback").textContent =
+            "Check your email to confirm!";
+        }
+      }
+
+      async function signOut() {
+        await supabase.auth.signOut();
+        document.getElementById("auth-container").style.display = "block";
+        document.getElementById("app-container").style.display = "none";
+        document.getElementById("signout-btn").style.display = "none";
+        document.getElementById("auth-feedback").textContent = "Signed out!";
+      }
+
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          showApp();
+        }
+      });
+
+      // Show app after login
+      function showApp() {
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("app-container").style.display = "block";
+        document.getElementById("signout-btn").style.display = "inline";
+        fetchRecipes();
+      }
+
+      // Fetch and display recipes
+      async function fetchRecipes() {
+        const { data, error } = await supabase
+          .from("recipes")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Error fetching recipes:", error);
+          return;
+        }
+        const recipeList = document.getElementById("recipe-list");
+        recipeList.innerHTML = "";
+        data.forEach((recipe) => {
+          const div = document.createElement("div");
+          div.className = "recipe";
+          div.innerHTML = `
+                    <strong>${recipe.name}</strong><br>
+                    Ingredients: ${recipe.ingredients}
+                    <button onclick="deleteRecipe(${recipe.id})">Delete</button>
+                    <button onclick="showEditForm(${recipe.id}, '${recipe.name}', '${recipe.ingredients}')">Edit</button>
+                    <div class="edit-form" id="edit-${recipe.id}">
+                        <input type="text" id="edit-name-${recipe.id}" value="${recipe.name}"><br>
+                        <textarea id="edit-ingredients-${recipe.id}">${recipe.ingredients}</textarea><br>
+                        <button onclick="editRecipe(${recipe.id})">Save</button>
+                    </div>
+                `;
+          recipeList.appendChild(div);
+        });
+      }
+
+      // Add a new recipe
+      async function addRecipe() {
+        const name = document.getElementById("recipe-name").value;
+        const ingredients = document.getElementById("recipe-ingredients").value;
+        if (!name || !ingredients) {
+          alert("Please enter both name and ingredients!");
+          return;
+        }
+        const { error } = await supabase
+          .from("recipes")
+          .insert({ name, ingredients });
+        if (error) {
+          console.error("Error adding recipe:", error);
+        } else {
+          document.getElementById("recipe-name").value = "";
+          document.getElementById("recipe-ingredients").value = "";
+          fetchRecipes();
+        }
+      }
+
+      // Delete a recipe
+      async function deleteRecipe(id) {
+        const { error } = await supabase.from("recipes").delete().eq("id", id);
+        if (error) {
+          console.error("Error deleting recipe:", error);
+        } else {
+          fetchRecipes();
+        }
+      }
+
+      // Show edit form
+      function showEditForm(id, name, ingredients) {
+        const editForm = document.getElementById(`edit-${id}`);
+        editForm.style.display =
+          editForm.style.display === "block" ? "none" : "block";
+      }
+
+      // Edit a recipe
+      async function editRecipe(id) {
+        const name = document.getElementById(`edit-name-${id}`).value;
+        const ingredients = document.getElementById(
+          `edit-ingredients-${id}`
+        ).value;
+        const { error } = await supabase
+          .from("recipes")
+          .update({ name, ingredients })
+          .eq("id", id);
+        if (error) {
+          console.error("Error editing recipe:", error);
+        } else {
+          fetchRecipes();
+        }
+      }
+    </script>
+  </body>
+</html>
